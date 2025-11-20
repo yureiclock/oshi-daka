@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>緋八瑪納 - 健身日記 (精準版)</title>
+<style>
+    :root {
+        --primary-color: #fdd835; /* Mana 黃 */
+        --accent-color: #d78a00;  /* 深黃色 */
+        --bg-gradient-start: #fff9db;
+        --bg-gradient-end: #ffffff;
+        --card-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    body {
+        font-family: "Microsoft JhengHei", sans-serif;
+        background-image: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+    }
+
+    .container {
+        background: white;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        text-align: center;
+        width: 100%;
+        max-width: 380px;
+        border-top: 8px solid var(--primary-color);
+    }
+
+    h1 { margin: 10px 0; font-size: 1.5rem; }
+    
+    /* 輸入框樣式 */
+    .input-group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
+    .input-label {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: #666;
+        margin-bottom: 5px;
+        display: block;
+    }
+    .workout-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #eee;
+        border-radius: 10px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+        font-family: inherit;
+    }
+    .workout-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* 按鈕樣式 */
+    .btn-checkin {
+        background-color: var(--primary-color); 
+        color: #000;
+        border: none;
+        padding: 15px 0;
+        font-size: 1.1rem;
+        font-weight: bold;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(253, 216, 53, 0.4);
+        transition: all 0.2s;
+        width: 100%;
+    }
+    .btn-checkin:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(253, 216, 53, 0.5);
+    }
+    .btn-checkin.update-mode {
+        background-color: #fff1b8;
+        color: #d78a00;
+    }
+
+    /* 日曆樣式 */
+    .calendar-wrapper {
+        margin-top: 20px;
+        border-top: 1px dashed #ddd;
+        padding-top: 20px;
+    }
+    .calendar-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+    }
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+    .day-name { font-size: 0.8rem; color: #888; font-weight: bold; padding-bottom: 5px; }
+    .day-cell {
+        height: 35px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; font-size: 0.9rem; position: relative;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .day-cell:hover { background-color: #f0f0f0; }
+    .day-cell.today { border: 2px solid var(--primary-color); font-weight: bold; }
+    .day-cell.checked { background-color: var(--primary-color); color: black; font-weight: bold; }
+    .day-cell.other-month { color: #ccc; pointer-events: none; }
+
+    /* 歷史紀錄顯示區 */
+    #history-display {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        display: none;
+        border-left: 4px solid #ccc;
+        text-align: left;
+    }
+
+    /* --- 彈出獎勵卡樣式 (Modal) --- */
+    .modal-overlay {
+        display: none; 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); z-index: 100;
+        justify-content: center; align-items: center; padding: 20px;
+    }
+    .reward-card {
+        background: white; width: 100%; max-width: 350px;
+        border-radius: 25px; padding: 25px; text-align: center;
+        box-shadow: var(--card-shadow); position: relative;
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 4px solid var(--primary-color);
+    }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+    .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+    .reward-title { font-size: 1.4rem; margin-bottom: 5px; color: #333; }
+    .reward-subtitle { font-size: 0.9rem; color: #666; margin-bottom: 20px; }
+    
+    .reward-visual-block {
+        display: block; text-decoration: none;
+        background: linear-gradient(45deg, #fdd835, #fbc02d);
+        height: 180px; border-radius: 15px; display: flex; flex-direction: column;
+        justify-content: center; align-items: center; color: white;
+        font-weight: bold; text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        cursor: pointer; transition: transform 0.2s;
+        box-shadow: 0 5px 15px rgba(253, 216, 53, 0.3); margin-bottom: 15px;
+        border: 3px solid white;
+    }
+    .reward-visual-block:hover { transform: scale(1.03); }
+    .reward-visual-icon { font-size: 3rem; margin-bottom: 10px; }
+    .reward-visual-text { font-size: 1.1rem; padding: 0 10px; }
+    
+    .tag-pill { display: inline-block; background: #fff5cc; color: #d78a00; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-bottom: 15px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>⚡ Mana 健身日記</h1>
+    
+    <div class="input-group">
+        <label class="input-label" for="workout-input">📝 今天做了什麼運動？</label>
+        <input type="text" id="workout-input" class="workout-input" placeholder="例如：深蹲 50 下 / 跑步 3km">
+    </div>
+
+    <button id="checkin-btn" class="btn-checkin" onclick="handleCheckIn()">💪 記錄並召喚獎勵</button>
+    
+    <div id="history-display">
+        <strong>📅 <span id="history-date"></span> 紀錄：</strong><br>
+        <span id="history-content" style="color: #d78a00; font-weight: bold;"></span>
+    </div>
+
+    <div class="calendar-wrapper">
+        <div class="calendar-header"><span id="month-year-text">Loading...</span></div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+    
+    <p style="margin-top: 20px; font-size: 0.8rem; color: #aaa;">*點擊日曆日期可回顧內容</p>
+</div>
+
+<div class="modal-overlay" id="reward-modal" onclick="closeModal(event)">
+    <div class="reward-card" onclick="event.stopPropagation()">
+        <div class="close-btn" onclick="closeModal(event)">×</div>
+        
+        <h2 class="reward-title">🎉 辛苦了！這是獎勵！</h2>
+        <p class="reward-subtitle" id="modal-date-text">考古時間：...</p>
+        <div class="tag-pill" id="modal-tag-text">#Tag</div>
+
+        <a id="modal-target-link" href="#" target="_blank" class="reward-visual-block">
+            <div class="reward-visual-icon">🎁</div>
+            <div class="reward-visual-text">開啟當週精選神圖 (Top)</div>
+        </a>
+        
+        <p style="font-size: 0.8rem; color:#aaa; margin-top:10px;">
+            將開啟 Twitter (X) 熱門分頁
+        </p>
+    </div>
+</div>
+
+<script>
+    // 資料庫名稱維持 v5，確保你剛剛測試的資料還在
+    const STORAGE_KEY = 'mana_workout_log_v5'; 
+    let workoutLog = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    window.onload = function() {
+        renderCalendar();
+        checkTodayStatus();
+    };
+
+    // 檢查今日狀態
+    function checkTodayStatus() {
+        const btn = document.getElementById('checkin-btn');
+        const input = document.getElementById('workout-input');
+        
+        if (workoutLog[todayStr]) {
+            btn.innerText = "✏️ 更新今日紀錄 (再次抽卡)";
+            btn.classList.add('update-mode');
+            input.value = workoutLog[todayStr];
+            showHistory(todayStr); // 預設顯示今日
+        } else {
+            btn.innerText = "💪 記錄並召喚獎勵";
+            btn.classList.remove('update-mode');
+            input.value = ""; 
+        }
+    }
+
+    // 處理打卡
+    function handleCheckIn() {
+        const input = document.getElementById('workout-input');
+        const content = input.value.trim() || "自主訓練";
+
+        // 儲存資料
+        workoutLog[todayStr] = content;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workoutLog));
+
+        // 顯示獎勵卡 (使用新的精準邏輯)
+        prepareAndShowModal();
+
+        // 更新 UI
+        renderCalendar();
+        checkTodayStatus();
+        showHistory(todayStr);
+    }
+
+    // 顯示歷史紀錄
+    function showHistory(dateStr) {
+        const displayArea = document.getElementById('history-display');
+        if (workoutLog[dateStr]) {
+            displayArea.style.display = 'block';
+            document.getElementById('history-date').innerText = dateStr;
+            document.getElementById('history-content').innerText = workoutLog[dateStr];
+            displayArea.style.borderLeftColor = '#fdd835';
+        } else {
+            displayArea.style.display = 'none';
+        }
+    }
+
+    // --- 核心：獎勵與連結生成 (精準版 v6.1) ---
+    function prepareAndShowModal() {
+        // Tag Pool
+        const tags = ["#まな板にマナ居た", "#イケカテマナ主", "#マナの眼", "#緋八ナマ"];
+        const randomTag = tags[Math.floor(Math.random() * tags.length)];
+
+        // 隨機日期邏輯
+        const start = new Date('2023-03-30'); 
+        const end = new Date();
+        end.setMonth(end.getMonth() - 1); 
+        const randomTime = start.getTime() + Math.random() * (end.getTime() - start.getTime());
+        const randomDate = new Date(randomTime);
+        
+        // 1. 設定結束時間為 +7 天 (擴大範圍保證有圖)
+        const nextDate = new Date(randomDate);
+        nextDate.setDate(randomDate.getDate() + 7);
+
+        const sinceStr = randomDate.toISOString().split('T')[0];
+        const untilStr = nextDate.toISOString().split('T')[0];
+
+        // 2. 條件篩選邏輯
+        let minFaves = ""; 
+        // 只有大流量 Tag 才設門檻，避免冷門 Tag 搜不到結果
+        if (randomTag === "#まな板にマナ居た" || randomTag === "#緋八ナマ") {
+             minFaves = " min_faves:100";
+        }
+        
+        // 3. 組合連結 (注意：拿掉了 &f=live，讓它顯示 Top 熱門)
+        const query = `${randomTag} until:${untilStr} since:${sinceStr}${minFaves} filter:images`;
+        const twitterUrl = `https://twitter.com/search?q=${encodeURIComponent(query)}&src=typed_query`;
+
+        // 填入資料
+        document.getElementById('modal-date-text').innerText = `考古時間：${sinceStr}`;
+        document.getElementById('modal-tag-text').innerText = randomTag;
+        document.getElementById('modal-target-link').href = twitterUrl;
+        
+        // 顯示 Modal
+        document.getElementById('reward-modal').style.display = 'flex';
+    }
+
+    function closeModal(event) {
+        if (event.target === document.getElementById('reward-modal') || event.target.classList.contains('close-btn')) {
+            document.getElementById('reward-modal').style.display = 'none';
+        }
+    }
+
+    // 繪製日曆
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        const monthText = document.getElementById('month-year-text');
+        grid.innerHTML = '';
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth(); 
+        monthText.innerText = `${year}年 ${month + 1}月`;
+        
+        const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+        weekDays.forEach(day => {
+            const div = document.createElement('div');
+            div.classList.add('day-name');
+            div.innerText = day;
+            grid.appendChild(div);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) {
+            const div = document.createElement('div');
+            div.classList.add('day-cell', 'other-month');
+            grid.appendChild(div);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const div = document.createElement('div');
+            div.classList.add('day-cell');
+            div.innerText = day;
+            const currentDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            if (currentDayStr === todayStr) div.classList.add('today');
+            
+            if (workoutLog[currentDayStr]) {
+                div.classList.add('checked'); 
+                div.innerText = "✔";
+            }
+
+            // 綁定點擊事件
+            div.onclick = function() {
+                showHistory(currentDayStr);
+            };
+
+            grid.appendChild(div);
+        }
+    }
+</script>
+
+</body>
+</html>
